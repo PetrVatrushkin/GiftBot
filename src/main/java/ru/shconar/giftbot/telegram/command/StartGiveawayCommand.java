@@ -12,6 +12,7 @@ import ru.shconar.giftbot.telegram.configuration.TelegramProperties;
 import ru.shconar.giftbot.telegram.info.SendContent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -43,9 +44,15 @@ public class StartGiveawayCommand implements Command {
         Optional<Raffle> raffle = raffleService.findRaffleByAdminId(adminId);
         if (raffle.isPresent()) {
             List<Participant> participants = participantService.findParticipants(raffle.get());
-            List<String> users = new ArrayList<>(participants.stream().map(Participant::getUsername).toList());
+            Collections.shuffle(participants);
 
-            Collections.shuffle(users);
+            List<String> users = new ArrayList<>(
+                participants.stream()
+                    .sorted(Comparator.comparingInt(Participant::getPriority))
+                    .map(Participant::getUsername)
+                    .toList()
+            );
+
             int count = Math.min(telegramProperties.winnersLimit(), users.size());
             List<String> randomUsers = users.subList(0, count);
 
