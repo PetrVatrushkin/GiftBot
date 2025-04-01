@@ -3,6 +3,7 @@ package ru.shconar.giftbot.telegram.command;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.request.SendMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.shconar.giftbot.domain.entity.Participant;
 import ru.shconar.giftbot.domain.entity.Raffle;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StartGiveawayCommand implements Command {
@@ -44,7 +46,10 @@ public class StartGiveawayCommand implements Command {
         Optional<Raffle> raffle = raffleService.findRaffleByAdminId(adminId);
         if (raffle.isPresent()) {
             List<Participant> participants = participantService.findParticipants(raffle.get());
+            log.info("Участники: {}", listOfParticipantToString(participants));
+
             Collections.shuffle(participants);
+            log.info("Участники после перемешивания: {}", listOfParticipantToString(participants));
 
             List<String> users = new ArrayList<>(
                 participants.stream()
@@ -52,6 +57,7 @@ public class StartGiveawayCommand implements Command {
                     .map(Participant::getUsername)
                     .toList()
             );
+            log.info("Участники после сортировки: {}", listOfUsernamesToString(users));
 
             int count = Math.min(telegramProperties.winnersLimit(), users.size());
             List<String> randomUsers = users.subList(0, count);
@@ -74,5 +80,16 @@ public class StartGiveawayCommand implements Command {
             new SendMessage(adminId, messageText),
             null
         );
+    }
+
+    private String listOfParticipantToString(List<Participant> participants) {
+        return "[" + participants.stream()
+            .map(participant -> participant.getUsername() + " - " + participant.getPriority())
+            .collect(Collectors.joining(","))
+            + "]";
+    }
+
+    private String listOfUsernamesToString(List<String> participants) {
+        return "[" + String.join(",", participants) + "]";
     }
 }
