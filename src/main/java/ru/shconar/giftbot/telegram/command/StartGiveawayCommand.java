@@ -56,6 +56,7 @@ public class StartGiveawayCommand implements Command {
                     .sorted(Comparator.comparingInt(Participant::getPriority))
                     .map(Participant::getUsername)
                     .toList()
+                    .reversed()
             );
             log.info("Участники после сортировки: {}", listOfUsernamesToString(users));
 
