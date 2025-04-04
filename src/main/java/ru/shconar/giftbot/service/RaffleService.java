@@ -7,7 +7,8 @@ import ru.shconar.giftbot.domain.RaffleRepository;
 import ru.shconar.giftbot.domain.entity.Raffle;
 import java.util.Optional;
 
-@Slf4j @Service
+@Slf4j
+@Service
 @RequiredArgsConstructor
 public class RaffleService {
 

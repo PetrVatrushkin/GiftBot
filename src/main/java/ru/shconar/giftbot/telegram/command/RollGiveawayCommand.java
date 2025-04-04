@@ -9,6 +9,7 @@ import ru.shconar.giftbot.domain.entity.Participant;
 import ru.shconar.giftbot.domain.entity.Raffle;
 import ru.shconar.giftbot.service.ParticipantService;
 import ru.shconar.giftbot.service.RaffleService;
+import ru.shconar.giftbot.service.WinnerService;
 import ru.shconar.giftbot.telegram.configuration.TelegramProperties;
 import ru.shconar.giftbot.telegram.info.SendContent;
 import java.util.ArrayList;
@@ -21,20 +22,21 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class StartGiveawayCommand implements Command {
+public class RollGiveawayCommand implements Command {
 
     private final TelegramProperties telegramProperties;
     private final RaffleService raffleService;
     private final ParticipantService participantService;
+    private final WinnerService winnerService;
 
     @Override
     public String command() {
-        return "/start_giveaway";
+        return "/roll_giveaway";
     }
 
     @Override
     public String description() {
-        return "Начать розыгрыш";
+        return "Определить победителя (результат придет в чат с ботом)";
     }
 
     @Override
@@ -51,29 +53,32 @@ public class StartGiveawayCommand implements Command {
             Collections.shuffle(participants);
             log.info("Участники после перемешивания: {}", listOfParticipantToString(participants));
 
+            List<Participant> sortedParticipants = participants.stream()
+                .sorted(Comparator.comparingInt(Participant::getPriority))
+                .toList()
+                .reversed();
+
             List<String> users = new ArrayList<>(
-                participants.stream()
-                    .sorted(Comparator.comparingInt(Participant::getPriority))
+                sortedParticipants.stream()
                     .map(Participant::getUsername)
                     .toList()
-                    .reversed()
             );
             log.info("Участники после сортировки: {}", listOfUsernamesToString(users));
 
-            int count = Math.min(telegramProperties.winnersLimit(), users.size());
-            List<String> randomUsers = users.subList(0, count);
+            int count = Math.min(telegramProperties.winnersLimit(), sortedParticipants.size());
+            List<Participant> randomParticipants = sortedParticipants.subList(0, count);
+
+            winnerService.deleteAllWinners(raffle.get());
+            winnerService.addWinners(raffle.get(), randomParticipants);
 
             messageText = "Список победителей\n" +
-                randomUsers.stream()
+                randomParticipants.stream()
+                    .map(Participant::getUsername)
                     .map(user -> "@" + user)
                     .collect(Collectors.joining("\n"));
 
-            participants.forEach(participantService::deleteParticipant);
-            Long channelId = raffle.get().getChannelId();
-            raffleService.deleteRaffle(raffle.get());
-
             return new SendContent(
-                new SendMessage(channelId, messageText),
+                new SendMessage(adminId, messageText),
                 null
             );
         }
