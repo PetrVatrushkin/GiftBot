@@ -68,7 +68,6 @@ public class RollGiveawayCommand implements Command {
             int count = Math.min(telegramProperties.winnersLimit(), sortedParticipants.size());
             List<Participant> randomParticipants = sortedParticipants.subList(0, count);
 
-            winnerService.deleteAllWinners(raffle.get());
             winnerService.addWinners(raffle.get(), randomParticipants);
 
             messageText = "Список победителей\n" +

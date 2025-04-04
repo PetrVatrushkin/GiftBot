@@ -1,6 +1,5 @@
 package ru.shconar.giftbot.service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,9 +16,10 @@ public class WinnerService {
 
     private final WinnerRepository winnerRepository;
 
-    @Transactional
     public boolean addWinners(Raffle raffle, List<Participant> participants) {
         try {
+            deleteAllWinners(raffle);
+            winnerRepository.flush();
             for (Participant participant : participants) {
                 Winner winner = new Winner(raffle, participant);
                 winnerRepository.save(winner);
